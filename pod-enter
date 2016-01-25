@@ -1,0 +1,29 @@
+#! /bin/bash
+# Version v1
+# maintainer: liyao.miao@yeepay.com
+# Usage: pod-enter PODNAME 
+# prequsities: gcc -> make -> nsenter -> docker-enter
+
+POD_NAME=""
+DEFAULT_NS=""
+
+#echo $#
+para_num=$#
+
+if [ $para_num -lt 1 ]
+then
+   echo "Usage: " 
+   echo "pod-enter PODNAME"
+   exit 1
+else
+   POD_NAME=$1
+   Node_IP=`kubectl describe pod $POD_NAME | grep Node: | awk '{print $2}'| cut -d "/" -f1` 
+   Docker_ID=`kubectl describe pod $POD_NAME | grep "docker id" | tail -1 | awk '{print $22}'`
+   echo $Node_IP
+   echo $Docker_ID
+   scp -q docker-enter root@${Node_IP}:~
+   scp -q nsenter root@${Node_IP}:~  
+   ssh root@${Node_IP} "mv docker-enter /usr/bin/docker-enter"
+   ssh root@${Node_IP} "mv nsenter /usr/bin/nsenter"
+   ssh -t root@${Node_IP} "docker-enter ${Docker_ID}" 
+fi
